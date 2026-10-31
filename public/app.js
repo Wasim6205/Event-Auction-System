@@ -755,3 +755,4 @@
   // Initial sound icon render
   updateSoundIcon();
 })();
+
