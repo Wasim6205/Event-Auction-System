@@ -128,6 +128,7 @@ class AuctionEngine {
 
     if (this.currentHighestBid) {
       this.winner = {
+        bidderId: this.currentHighestBid.bidderId,
         bidderName: this.currentHighestBid.bidderName,
         winningBid: this.currentHighestBid.amount,
         bidId: this.currentHighestBid.id,
@@ -152,9 +153,9 @@ class AuctionEngine {
   /**
    * Place a bid on the item
    * Requirement: Every new bid must be at least ₹100 higher than the current highest bid.
-   * @param {Object} bidParams - { bidderName, amount }
+   * @param {Object} bidParams - { bidderId, bidderName, amount }
    */
-  placeBid({ bidderName, amount }) {
+  placeBid({ bidderId, bidderName, amount }) {
     // 1. Check expiration first
     this.checkExpiration();
 
@@ -230,8 +231,10 @@ class AuctionEngine {
     const increment = Math.round((cleanAmount - previousBase) * 100) / 100;
 
     // 7. Accept the bid
+    const resolvedBidderId = bidderId || `bidder_${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     const bidRecord = {
       id: `bid_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      bidderId: resolvedBidderId,
       bidderName: cleanName,
       amount: cleanAmount,
       timestamp: Date.now(),

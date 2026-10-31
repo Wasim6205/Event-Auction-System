@@ -1,5 +1,6 @@
 const http = require('http');
 const path = require('path');
+const os = require('os');
 const express = require('express');
 const cors = require('cors');
 const { Server } = require('socket.io');
@@ -15,6 +16,19 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// Helper to determine the machine's local Wi-Fi / LAN IP address
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
 // Initialize Auction Engine
 const auction = new AuctionEngine();
@@ -68,10 +82,22 @@ app.get('/api/auction', (req, res) => {
   });
 });
 
-// 2. Place a bid via REST
+// 2. Get network access info for multi-device connections
+app.get('/api/network-info', (req, res) => {
+  const ip = getLocalIpAddress();
+  res.json({
+    success: true,
+    ip,
+    port: PORT,
+    localUrl: `http://localhost:${PORT}`,
+    networkUrl: `http://${ip}:${PORT}`
+  });
+});
+
+// 3. Place a bid via REST
 app.post('/api/auction/bid', (req, res) => {
-  const { bidderName, amount } = req.body;
-  const result = auction.placeBid({ bidderName, amount });
+  const { bidderId, bidderName, amount } = req.body;
+  const result = auction.placeBid({ bidderId, bidderName, amount });
 
   if (!result.success) {
     return res.status(400).json(result);
@@ -81,7 +107,7 @@ app.post('/api/auction/bid', (req, res) => {
   res.json(result);
 });
 
-// 3. Start auction (Organizer)
+// 4. Start auction (Organizer)
 app.post('/api/auction/start', (req, res) => {
   const { duration } = req.body;
   const result = auction.start(duration);
@@ -94,7 +120,7 @@ app.post('/api/auction/start', (req, res) => {
   res.json(result);
 });
 
-// 4. End auction early (Organizer Hammer)
+// 5. End auction early (Organizer Hammer)
 app.post('/api/auction/end', (req, res) => {
   const { reason } = req.body || {};
   const result = auction.end(reason || 'Hammered down by organizer');
@@ -107,7 +133,7 @@ app.post('/api/auction/end', (req, res) => {
   res.json(result);
 });
 
-// 5. Reset auction (Organizer)
+// 6. Reset auction (Organizer)
 app.post('/api/auction/reset', (req, res) => {
   const itemConfig = req.body && Object.keys(req.body).length > 0 ? req.body : null;
   const state = auction.reset(itemConfig);
@@ -115,7 +141,7 @@ app.post('/api/auction/reset', (req, res) => {
   res.json({ success: true, state });
 });
 
-// 6. Update item (Organizer)
+// 7. Update item (Organizer)
 app.post('/api/auction/item', (req, res) => {
   const result = auction.updateItem(req.body);
   if (!result.success) {
@@ -125,7 +151,7 @@ app.post('/api/auction/item', (req, res) => {
   res.json(result);
 });
 
-// 7. Export auction ledger for organizers (JSON or CSV)
+// 8. Export auction ledger for organizers (JSON or CSV)
 app.get('/api/auction/export', (req, res) => {
   const format = req.query.format || 'json';
   const state = auction.getState();
@@ -151,16 +177,21 @@ io.on('connection', (socket) => {
   // Send state immediately on connect
   socket.emit('initial_state', {
     state: auction.getState(),
-    connectedCount: io.engine.clientsCount
+    connectedCount: io.engine.clientsCount,
+    networkInfo: {
+      ip: getLocalIpAddress(),
+      port: PORT,
+      networkUrl: `http://${getLocalIpAddress()}:${PORT}`
+    }
   });
 
   // Notify everyone of updated count
   io.emit('participant_count', { count: io.engine.clientsCount });
 
-  // Handle bid from client
+  // Handle bid from client (multiple devices)
   socket.on('place_bid', (data, callback) => {
-    const { bidderName, amount } = data || {};
-    const result = auction.placeBid({ bidderName, amount });
+    const { bidderId, bidderName, amount } = data || {};
+    const result = auction.placeBid({ bidderId, bidderName, amount });
 
     if (!result.success) {
       socket.emit('bid_rejected', result);
@@ -168,7 +199,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Broadcast valid bid to ALL connected participants
+    // Broadcast valid bid to ALL connected participants and devices
     broadcastState('bid_accepted', { bid: result.bid });
     if (typeof callback === 'function') callback(result);
   });
@@ -215,15 +246,17 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start Server if run directly
+// Start Server if run directly - bind to 0.0.0.0 to allow access from any device on the network
 if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`===============================================`);
-    console.log(`🔨 Event Auction System Server`);
-    console.log(`📡 Real-time Socket.IO + REST API running at:`);
-    console.log(`👉 http://localhost:${PORT}`);
-    console.log(`===============================================`);
+  server.listen(PORT, '0.0.0.0', () => {
+    const ip = getLocalIpAddress();
+    console.log(`=======================================================`);
+    console.log(`🔨 Event Auction System Server (Multi-Device Active)`);
+    console.log(`📡 Local Machine:   http://localhost:${PORT}`);
+    console.log(`🌐 Other Devices:   http://${ip}:${PORT}`);
+    console.log(`📱 Connect your phone/tablet to the same Wi-Fi and open!`);
+    console.log(`=======================================================`);
   });
 }
 
-module.exports = { app, server, io, auction, timerInterval };
+module.exports = { app, server, io, auction, timerInterval, getLocalIpAddress };

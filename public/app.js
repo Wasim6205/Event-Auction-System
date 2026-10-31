@@ -1,6 +1,6 @@
 /**
  * Event Auction System - Client Application
- * Authoritative real-time bidding, synchronized clock, audio cues, and transparent audit history.
+ * Authoritative real-time bidding, synchronized clock, audio cues, and multi-device support.
  */
 
 (() => {
@@ -13,6 +13,7 @@
     soundIcon: document.getElementById('soundIcon'),
     organizerToggleBtn: document.getElementById('organizerToggleBtn'),
     organizerPanel: document.getElementById('organizerPanel'),
+    devicesModalBtn: document.getElementById('devicesModalBtn'),
 
     // Organizer Controls
     auctionDurationSelect: document.getElementById('auctionDurationSelect'),
@@ -26,6 +27,7 @@
     userAvatar: document.getElementById('userAvatar'),
     bidderNameInput: document.getElementById('bidderNameInput'),
     personaBtns: document.querySelectorAll('.persona-btn'),
+    randomPersonaBtn: document.getElementById('randomPersonaBtn'),
 
     // Banners
     winnerBanner: document.getElementById('winnerBanner'),
@@ -74,7 +76,7 @@
     bidHistoryContainer: document.getElementById('bidHistoryContainer'),
     emptyHistoryNotice: document.getElementById('emptyHistoryNotice'),
 
-    // Modal
+    // Modals
     editItemModal: document.getElementById('editItemModal'),
     editItemForm: document.getElementById('editItemForm'),
     modalItemTitle: document.getElementById('modalItemTitle'),
@@ -85,6 +87,13 @@
     closeModalBtn: document.getElementById('closeModalBtn'),
     cancelEditModalBtn: document.getElementById('cancelEditModalBtn'),
 
+    // Multi-Device Modal
+    devicesModal: document.getElementById('devicesModal'),
+    closeDevicesModalBtn: document.getElementById('closeDevicesModalBtn'),
+    networkQrCode: document.getElementById('networkQrCode'),
+    networkUrlInput: document.getElementById('networkUrlInput'),
+    copyNetworkUrlBtn: document.getElementById('copyNetworkUrlBtn'),
+
     // Toast Container
     toastContainer: document.getElementById('toastContainer')
   };
@@ -94,6 +103,26 @@
   let isSoundEnabled = localStorage.getItem('auction_sound') !== 'false';
   let audioCtx = null;
   let lastTickSecond = null;
+  let cachedNetworkUrl = null;
+
+  // --- UNIQUE DEVICE IDENTIFIER ---
+  // Guarantees every browser/device has its own distinct ID for concurrent bidding
+  let myBidderId = localStorage.getItem('auction_bidder_id');
+  if (!myBidderId) {
+    myBidderId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+    localStorage.setItem('auction_bidder_id', myBidderId);
+  }
+
+  // Pool of default personas so different devices opening for the first time don't get the same name
+  const personaPool = [
+    'Rahul S.', 'Priya M.', 'Amit K.', 'Sneha R.',
+    'Vikram D.', 'Ananya P.', 'Rohan T.', 'Pooja V.',
+    'Alice M.', 'Bob K.', 'Charlie V.', 'Diana S.'
+  ];
+
+  function getRandomPersona() {
+    return personaPool[Math.floor(Math.random() * personaPool.length)];
+  }
 
   // --- AUDIO SYNTHESIZER (Web Audio API) ---
   function getAudioContext() {
@@ -153,7 +182,6 @@
 
   function soundAuctionEnded() {
     if (!isSoundEnabled) return;
-    // Gavel gong tone
     playTone(130.81, 0.7, 'triangle', 0.3); // C3 deep gong
     setTimeout(() => {
       playTone(523.25, 0.15, 'sine', 0.15);
@@ -205,8 +233,8 @@
     localStorage.setItem('auction_bidder_name', cleanName);
   }
 
-  // Load saved name or pick default
-  const savedName = localStorage.getItem('auction_bidder_name') || 'Alice M.';
+  // Load saved name or assign a fresh random name for this device
+  const savedName = localStorage.getItem('auction_bidder_name') || getRandomPersona();
   updateBidderIdentity(savedName);
 
   el.bidderNameInput.addEventListener('input', (e) => {
@@ -220,6 +248,63 @@
       showToast(`Switched persona to ${name}`, 'info');
     });
   });
+
+  if (el.randomPersonaBtn) {
+    el.randomPersonaBtn.addEventListener('click', () => {
+      const name = getRandomPersona();
+      updateBidderIdentity(name);
+      showToast(`Generated new bidder identity: ${name}`, 'info');
+    });
+  }
+
+  // --- MULTI-DEVICE MODAL LOGIC ---
+  function updateNetworkInfo(info) {
+    if (!info) return;
+    cachedNetworkUrl = info.networkUrl;
+    if (el.networkUrlInput) el.networkUrlInput.value = info.networkUrl;
+    if (el.networkQrCode) {
+      el.networkQrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(info.networkUrl)}`;
+    }
+  }
+
+  if (el.devicesModalBtn) {
+    el.devicesModalBtn.addEventListener('click', () => {
+      if (!cachedNetworkUrl) {
+        fetch('/api/network-info')
+          .then(r => r.json())
+          .then(data => updateNetworkInfo(data))
+          .catch(() => {});
+      }
+      el.devicesModal.classList.remove('hidden');
+    });
+  }
+
+  if (el.closeDevicesModalBtn) {
+    el.closeDevicesModalBtn.addEventListener('click', () => {
+      el.devicesModal.classList.add('hidden');
+    });
+  }
+
+  if (el.copyNetworkUrlBtn) {
+    el.copyNetworkUrlBtn.addEventListener('click', () => {
+      const url = el.networkUrlInput.value;
+      if (url) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => {
+            showToast('Network URL copied! Open this in any device on your Wi-Fi.', 'success');
+          }).catch(() => {
+            el.networkUrlInput.select();
+            document.execCommand('copy');
+            showToast('Network URL copied!', 'success');
+          });
+        } else {
+          el.networkUrlInput.select();
+          document.execCommand('copy');
+          showToast('Network URL copied!', 'success');
+        }
+      }
+    });
+  }
 
   // --- FORMATTING HELPERS ---
   function formatCurrency(val) {
@@ -388,7 +473,7 @@
 
     // 4. Minimum Next Bid Text & Input placeholder
     el.minNextBidText.textContent = formatCurrency(state.minNextBid);
-    el.bidAmountInput.placeholder = (state.minNextBid).toFixed(2);
+    el.bidAmountInput.placeholder = String(state.minNextBid);
     el.bidAmountInput.min = state.minNextBid;
 
     // 5. Controls Enabled/Disabled based on status
@@ -449,13 +534,11 @@
       el.timerSubtitle.textContent = 'Ready to Start';
       el.timerNotice.innerHTML = '<i data-lucide="info" class="w-3.5 h-3.5 text-amber-400"></i><span>Waiting for event organizer to start the clock.</span>';
     } else if (remainingSeconds <= 10) {
-      // Critical final 10s
       el.timerDisplay.classList.add('timer-critical');
       el.timerProgressBar.classList.add('bg-rose-500');
       el.timerSubtitle.textContent = 'Final Seconds!';
       el.timerNotice.innerHTML = '<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400 animate-pulse"></i><span class="text-rose-400 font-bold">Closing very soon! Enter highest offer now.</span>';
       
-      // Sound tick once per second
       if (lastTickSecond !== remainingSeconds && remainingSeconds > 0) {
         lastTickSecond = remainingSeconds;
         soundCountdownTick();
@@ -492,6 +575,9 @@
 
     list.forEach((bid, index) => {
       const isLeading = bid.isLeading;
+      const isMyBid = (bid.bidderId && bid.bidderId === myBidderId) ||
+        (bid.bidderName.trim().toLowerCase() === el.bidderNameInput.value.trim().toLowerCase());
+
       const row = document.createElement('div');
       row.className = `p-3 rounded-2xl border transition-all flex items-center justify-between text-xs ${
         isLeading
@@ -511,6 +597,7 @@
           <div>
             <div class="flex items-center space-x-1.5">
               <span class="font-bold text-white">${escapeHtml(bid.bidderName)}</span>
+              ${isMyBid ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">You</span>' : ''}
               ${isLeading ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Leading</span>' : ''}
             </div>
             <span class="text-[10px] text-slate-400">${bid.formattedTime}</span>
@@ -599,8 +686,8 @@
       }
     }
 
-    // Send through WebSocket to server
-    socket.emit('place_bid', { bidderName, amount }, (response) => {
+    // Send through WebSocket to server with unique device bidderId
+    socket.emit('place_bid', { bidderId: myBidderId, bidderName, amount }, (response) => {
       if (!response.success) {
         setBidFeedback(response.reason, true);
         soundBidRejected();
@@ -697,6 +784,9 @@
     if (data?.connectedCount) {
       el.connectedCount.textContent = data.connectedCount;
     }
+    if (data?.networkInfo) {
+      updateNetworkInfo(data.networkInfo);
+    }
     render(data?.state);
   });
 
@@ -712,7 +802,9 @@
     soundBidSuccess();
     render(data.state);
 
-    const isMyBid = data.bid.bidderName.trim().toLowerCase() === el.bidderNameInput.value.trim().toLowerCase();
+    const isMyBid = (data.bid.bidderId && data.bid.bidderId === myBidderId) ||
+      data.bid.bidderName.trim().toLowerCase() === el.bidderNameInput.value.trim().toLowerCase();
+
     if (isMyBid) {
       showToast(`Your bid of ${formatCurrency(data.bid.amount)} was accepted!`, 'success');
       setBidFeedback(`Your bid of ${formatCurrency(data.bid.amount)} was accepted! You are now leading.`, false);
@@ -759,4 +851,3 @@
   // Initial sound icon render
   updateSoundIcon();
 })();
-

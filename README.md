@@ -41,15 +41,23 @@ npm install
 ```bash
 npm start
 ```
-The server will start at: **`http://localhost:3000`**
+The server will bind to `0.0.0.0` and output:
+```
+=======================================================
+🔨 Event Auction System Server (Multi-Device Active)
+📡 Local Machine:   http://localhost:3000
+🌐 Other Devices:   http://192.168.1.34:3000
+📱 Connect your phone/tablet to the same Wi-Fi and open!
+=======================================================
+```
 
-### 3. Open in Browser
-Open `http://localhost:3000` in multiple browser windows or tabs:
-- **Tab 1**: Organizer panel (click "Organizer Panel" in the top right to start the clock)
-- **Tab 2**: Bidder A (e.g. Alice)
-- **Tab 3**: Bidder B (e.g. Bob)
+### 3. Open on Multiple Different Devices
+You can bid simultaneously across as many devices as you want:
+- **Device 1 (Host Laptop)**: Open `http://localhost:3000` (can use as Organizer or Bidder).
+- **Device 2 (Mobile Phone)**: Scan the QR code by clicking **"📱 Multi-Device"** in the top navigation bar, or open `http://<YOUR-IP>:3000` in Safari/Chrome.
+- **Device 3 (Tablet / Another Laptop)**: Open `http://<YOUR-IP>:3000`.
 
-Watch bids sync in real time across all windows without page refresh!
+Each device is automatically assigned a unique persistent device ID (`bidderId`) and distinct bidder persona. When any device places a bid, all connected devices update within milliseconds in real-time!
 
 ---
 

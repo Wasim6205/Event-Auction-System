@@ -163,3 +163,61 @@ test('API: Stop accepting bids when auction ends and display winner', async () =
   assert.equal(lateBid.status, 400);
   assert.equal(lateBid.data.code, 'AUCTION_ENDED');
 });
+
+test('API: Multi-device network info endpoint', async () => {
+  const res = await request('/api/network-info');
+  assert.equal(res.status, 200);
+  assert.equal(res.data.success, true);
+  assert.ok(res.data.ip);
+  assert.ok(res.data.networkUrl.startsWith('http://'));
+});
+
+test('API: Multiple concurrent users bidding from different devices', async () => {
+  auction.reset({ startingPrice: 500 });
+  auction.start(60);
+
+  // Device 1 (Mobile - Rahul) places opening bid ₹500
+  const bidDev1 = await request('/api/auction/bid', {
+    method: 'POST',
+    body: { bidderId: 'mobile_device_1', bidderName: 'Rahul S.', amount: 500 }
+  });
+  assert.equal(bidDev1.status, 200);
+  assert.equal(bidDev1.data.bid.bidderName, 'Rahul S.');
+  assert.equal(bidDev1.data.bid.bidderId, 'mobile_device_1');
+
+  // Device 2 (Laptop - Priya) and Device 3 (Tablet - Amit) bid simultaneously
+  const [resPriya, resAmitTooLow] = await Promise.all([
+    request('/api/auction/bid', {
+      method: 'POST',
+      body: { bidderId: 'laptop_device_2', bidderName: 'Priya M.', amount: 600 }
+    }),
+    request('/api/auction/bid', {
+      method: 'POST',
+      body: { bidderId: 'tablet_device_3', bidderName: 'Amit K.', amount: 550 } // only +₹50
+    })
+  ]);
+
+  // Priya's ₹600 was valid (>= 500 + 100)
+  assert.equal(resPriya.status, 200);
+  assert.equal(resPriya.data.bid.amount, 600);
+
+  // Amit's ₹550 was rejected (requires at least ₹600 or ₹700)
+  assert.equal(resAmitTooLow.status, 400);
+  assert.equal(resAmitTooLow.data.code, 'BID_TOO_LOW');
+
+  // Device 3 (Tablet - Amit) now outbids with ₹750 (>= 600 + 100)
+  const bidDev3Success = await request('/api/auction/bid', {
+    method: 'POST',
+    body: { bidderId: 'tablet_device_3', bidderName: 'Amit K.', amount: 750 }
+  });
+  assert.equal(bidDev3Success.status, 200);
+  assert.equal(bidDev3Success.data.bid.bidderName, 'Amit K.');
+  assert.equal(bidDev3Success.data.bid.amount, 750);
+
+  // Verify state
+  const stateRes = await request('/api/auction');
+  assert.equal(stateRes.data.totalBids, 3);
+  assert.equal(stateRes.data.currentHighestBid.bidderName, 'Amit K.');
+  assert.equal(stateRes.data.currentHighestBid.amount, 750);
+  assert.equal(stateRes.data.minNextBid, 850);
+});

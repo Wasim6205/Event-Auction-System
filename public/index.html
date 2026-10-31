@@ -84,6 +84,12 @@
           <span class="hidden sm:inline text-slate-400">Live</span>
         </div>
 
+        <!-- Connect Mobile / Other Devices Button -->
+        <button id="devicesModalBtn" title="Connect from phone or other devices" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium transition-all">
+          <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">📱 Multi-Device</span>
+        </button>
+
         <!-- Sound Toggle -->
         <button id="soundToggleBtn" title="Toggle Sound Effects" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-colors">
           <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4"></i>
@@ -172,10 +178,13 @@
       <!-- Quick Switch Persona Pills -->
       <div class="flex items-center space-x-2 text-xs overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
         <span class="text-slate-500 text-xs whitespace-nowrap">Switch Persona:</span>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Rahul S.">Rahul</button>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Priya M.">Priya</button>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Amit K.">Amit</button>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Sneha R.">Sneha</button>
         <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Alice M.">Alice</button>
         <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Bob K.">Bob</button>
-        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Charlie V.">Charlie</button>
-        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Diana S.">Diana</button>
+        <button id="randomPersonaBtn" class="px-2.5 py-1 rounded-full bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 font-semibold transition" title="Generate New Random Identity">🎲 New</button>
       </div>
     </div>
 
@@ -508,6 +517,51 @@
           <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400">Save Changes</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MULTI-DEVICE CONNECTION MODAL -->
+  <div id="devicesModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i data-lucide="smartphone" class="w-4 h-4 text-emerald-400"></i>
+          <span>Bid from Any Device / Mobile</span>
+        </h3>
+        <button id="closeDevicesModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        Connect phones, tablets, or other computers on the same Wi-Fi network. Every device gets its own independent bidder identity, and multiple users can bid simultaneously!
+      </p>
+
+      <!-- QR Code Container -->
+      <div class="bg-white p-3 rounded-2xl w-44 h-44 mx-auto flex items-center justify-center shadow-lg border-2 border-emerald-500/30">
+        <img id="networkQrCode" src="" alt="Scan QR Code to Join" class="w-full h-full object-contain">
+      </div>
+      <p class="text-[11px] text-slate-400 text-center">Scan with your phone camera to join instantly</p>
+
+      <!-- URL Display & Copy Box -->
+      <div class="space-y-1.5 text-left">
+        <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Or Open This Link On Other Devices:</label>
+        <div class="flex items-center space-x-2">
+          <input type="text" id="networkUrlInput" readonly class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-emerald-400 w-full focus:outline-none select-all">
+          <button type="button" id="copyNetworkUrlBtn" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center space-x-1 flex-shrink-0">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 text-left space-y-1">
+        <div class="flex items-center space-x-1.5 text-emerald-400 font-semibold">
+          <i data-lucide="zap" class="w-3 h-3"></i>
+          <span>Simultaneous Multi-User Supported</span>
+        </div>
+        <p>Bids from all connected devices sync live via WebSockets. The server evaluates incoming bids in real time and enforces the ₹100 minimum step.</p>
+      </div>
     </div>
   </div>
 
