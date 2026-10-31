@@ -1,1 +1,99 @@
-# Event-Auction-System
+# 🔨 Event Auction System
+
+A transparent, real-time, timed auction platform built for event organizers and participants. Features server-authoritative timer synchronization, atomic bid validation, live multi-client updates via WebSockets, and celebratory winner declarations.
+
+---
+
+## 🌟 Features Implemented
+
+| # | Required Feature | Implementation Details |
+|---|---|---|
+| **1** | **Display Item & Starting Price** | Showcases high-resolution item imagery, title, provenance certification, lot number, category, and prominent starting price banner. |
+| **2** | **Allow Participants to Place Bids** | Participants can enter their name, choose demo personas (Alice, Bob, Charlie, Diana), use quick increment buttons (`+$10`, `+$25`, `+$50`, `+$100`, `+$250`, `Next Min`), or enter custom bids. |
+| **3** | **Reject Invalid / Lower Bids** | Validates bids both client-side and server-side. Strictly rejects bids lower than the starting price or less than/equal to the current highest bid (`BID_TOO_LOW`, `BELOW_STARTING_PRICE`) with clear visual and audio alerts. |
+| **4** | **Display Highest Bid & Bid History** | Live spotlight showing current highest bid amount, leader name, and relative timestamp. Full chronological bid history feed with rank, leader status badges, bid delta, and exact timestamps. |
+| **5** | **Stop Accepting Bids at Auction End** | Synchronized countdown clock with visual urgency (green $\to$ amber $\to$ pulsing red in final 10s). Server-enforced expiration rejects late bids (`AUCTION_ENDED`) and immediately locks bidding inputs. |
+| **6** | **Display the Winner** | Celebratory winner showcase banner with winner's name, final hammer price, receipt audit ID, dynamic confetti celebration, and sound fanfare. |
+| **+** | **Organizer Control Station** | Event organizers can start auctions (30s, 60s, 2m, 5m presets), trigger the final hammer (end early), edit item specifications, reset state, and export the official auction ledger to CSV. |
+
+---
+
+## 🏗️ Architecture
+
+- **Backend**: Node.js, Express, Socket.IO
+  - Domain engine (`src/auctionEngine.js`): Pure, testable state machine enforcing all business rules.
+  - HTTP Server (`server.js`): REST API endpoints + WebSockets for instant sub-second synchronization across all connected devices/tabs.
+- **Frontend**: Responsive Single-Page Application (`public/index.html`, `public/app.js`, `public/style.css`)
+  - Tailwind CSS for modern glassmorphic UI.
+  - Lucide icons & Canvas Confetti for celebratory animations.
+  - Web Audio API synthesizer for zero-dependency sound effects (bidding chime, rejection buzzer, countdown heartbeat, winner fanfare).
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Start the Server
+```bash
+npm start
+```
+The server will start at: **`http://localhost:3000`**
+
+### 3. Open in Browser
+Open `http://localhost:3000` in multiple browser windows or tabs:
+- **Tab 1**: Organizer panel (click "Organizer Panel" in the top right to start the clock)
+- **Tab 2**: Bidder A (e.g. Alice)
+- **Tab 3**: Bidder B (e.g. Bob)
+
+Watch bids sync in real time across all windows without page refresh!
+
+---
+
+## 🧪 Automated Testing
+
+The project includes unit tests for the domain engine and integration tests for the REST API.
+
+Run unit tests:
+```bash
+npm test
+```
+
+Run all tests (unit + integration):
+```bash
+npm run test:all
+```
+
+### Test Suite Summary:
+- `Feature 1`: Display item details and starting price
+- `Feature 2`: Allow participants to place bids and update highest bid
+- `Feature 3`: Reject bids below starting price, equal bids, and lower bids
+- `Feature 4`: Display current highest bid and comprehensive bid history
+- `Feature 5`: Reject bids before auction starts and after timer expires
+- `Feature 6`: Declare highest bidder as winner, with zero-bid handling
+- `API Tests`: REST endpoints for bidding, timer management, early hammer, and CSV export.
+
+---
+
+## 📡 REST API & WebSocket Reference
+
+### REST Endpoints
+- `GET /api/auction` — Returns current snapshot (status, item, highest bid, history, remaining time).
+- `POST /api/auction/bid` — Body: `{ "bidderName": "Alice", "amount": 650 }`. Returns accepted bid or 400 error.
+- `POST /api/auction/start` — Body: `{ "duration": 60 }`. Starts timed auction.
+- `POST /api/auction/end` — Closes auction immediately and determines winner.
+- `POST /api/auction/reset` — Resets auction to initial state.
+- `POST /api/auction/item` — Updates item title, description, starting price, image.
+- `GET /api/auction/export?format=csv` — Downloads official auction ledger as CSV.
+
+### WebSocket Events (Socket.IO)
+- Client $\to$ Server: `place_bid`, `start_auction`, `end_auction`, `reset_auction`, `update_item`
+- Server $\to$ Client: `initial_state`, `timer_tick`, `bid_accepted`, `bid_rejected`, `auction_started`, `auction_ended`, `auction_reset`, `participant_count`
+
+---
+
+## 🛡️ License
+MIT

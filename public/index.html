@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Auction System | Live Timed Auction</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d',
+            },
+            gold: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          },
+          animation: {
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+          },
+          keyframes: {
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(4px, 0, 0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Live Status -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+          <i data-lucide="gavel" class="w-5 h-5 text-slate-950"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-lg tracking-tight text-white">AUCTION<span class="text-emerald-400">PULSE</span></span>
+            <span id="auctionStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span>
+              IDLE
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Transparent Real-Time Event Auction Platform</p>
+        </div>
+      </div>
+
+      <!-- Live Participant Count & Controls -->
+      <div class="flex items-center space-x-3 sm:space-x-4">
+        
+        <!-- Spectator Counter -->
+        <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span id="connectedCount">1</span>
+          <span class="hidden sm:inline text-slate-400">Live</span>
+        </div>
+
+        <!-- Sound Toggle -->
+        <button id="soundToggleBtn" title="Toggle Sound Effects" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-colors">
+          <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Organizer Mode Toggle -->
+        <button id="organizerToggleBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-medium transition-all">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Organizer Panel</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ORGANIZER ACCORDION / TOOLBAR -->
+  <aside id="organizerPanel" class="hidden bg-slate-900 border-b border-amber-500/30 px-4 py-4 transition-all duration-300">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center space-x-2 text-amber-400 font-semibold text-sm">
+        <i data-lucide="sliders" class="w-4 h-4"></i>
+        <span>Event Organizer Control Station</span>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Duration Selector -->
+        <div class="flex items-center space-x-2 text-xs text-slate-300">
+          <label for="auctionDurationSelect">Duration:</label>
+          <select id="auctionDurationSelect" class="bg-slate-800 border border-slate-700 rounded-md px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-500">
+            <option value="30">30 Seconds (Fast Demo)</option>
+            <option value="60" selected>60 Seconds (1 Min)</option>
+            <option value="120">2 Minutes</option>
+            <option value="300">5 Minutes</option>
+          </select>
+        </div>
+
+        <!-- Start Button -->
+        <button id="startAuctionBtn" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition-colors shadow-sm">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>
+          <span>Start Auction</span>
+        </button>
+
+        <!-- Hammer (End Early) Button -->
+        <button id="endAuctionBtn" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          <i data-lucide="gavel" class="w-3.5 h-3.5"></i>
+          <span>Final Hammer (End)</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button id="resetAuctionBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium text-xs transition-colors">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Reset</span>
+        </button>
+
+        <!-- Edit Item Modal Trigger -->
+        <button id="editItemBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium text-xs transition-colors">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+          <span>Edit Item</span>
+        </button>
+
+        <!-- Export CSV Button -->
+        <a id="exportCsvBtn" href="/api/auction/export?format=csv" download class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium text-xs transition-colors">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Export Ledger (CSV)</span>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- NOTIFICATION BANNER / TOAST ANCHOR -->
+  <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+    
+    <!-- PARTICIPANT PERSONA SWITCHER / IDENTIFICATION -->
+    <div class="mb-6 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+      <div class="flex items-center space-x-3 w-full sm:w-auto">
+        <div id="userAvatar" class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold flex items-center justify-center text-sm shadow-inner">
+          AM
+        </div>
+        <div class="flex-1 sm:flex-initial">
+          <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">You Are Bidding As</label>
+          <input type="text" id="bidderNameInput" value="Alice M." placeholder="Enter your name" class="bg-transparent border-b border-dashed border-slate-600 focus:border-emerald-400 focus:outline-none text-sm font-semibold text-white px-1 py-0.5 w-full sm:w-44 transition-colors">
+        </div>
+      </div>
+
+      <!-- Quick Switch Persona Pills -->
+      <div class="flex items-center space-x-2 text-xs overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        <span class="text-slate-500 text-xs whitespace-nowrap">Switch Persona:</span>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Alice M.">Alice</button>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Bob K.">Bob</button>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Charlie V.">Charlie</button>
+        <button class="persona-btn px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-name="Diana S.">Diana</button>
+      </div>
+    </div>
+
+    <!-- WINNER CELEBRATION MODAL / HERO BANNER (Shown when auction ends) -->
+    <div id="winnerBanner" class="hidden mb-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border-2 border-gold-400/50 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+      <div class="absolute -right-12 -top-12 w-48 h-48 bg-gold-400/10 rounded-full blur-2xl pointer-events-none"></div>
+      
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+        <div class="flex items-center space-x-5 text-center md:text-left">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-gold-400 to-amber-600 flex items-center justify-center shadow-lg shadow-gold-500/30 flex-shrink-0 animate-bounce">
+            <i data-lucide="trophy" class="w-8 h-8 sm:w-10 sm:h-10 text-slate-950"></i>
+          </div>
+          <div>
+            <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 border border-gold-500/40 text-xs font-bold uppercase tracking-wider mb-1.5">
+              <span>★ Official Winner Declared ★</span>
+            </div>
+            <h2 id="winnerTitle" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Congratulations, <span id="winnerName" class="text-gold-400 underline decoration-amber-500">Alice M.</span>!
+            </h2>
+            <p id="winnerSubtitle" class="text-sm text-slate-300 mt-1">
+              Winning offer of <span id="winningBidAmount" class="font-bold text-white text-base">$850.00</span> for <span id="winningItemName" class="font-semibold text-slate-200">Vintage 1968 Rolex Submariner</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center md:items-end gap-2 text-center md:text-right">
+          <div class="px-4 py-2 rounded-xl bg-slate-900/80 border border-gold-500/30">
+            <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-medium">Final Hammer Price</span>
+            <span id="winnerPriceBadge" class="text-2xl font-black text-gold-400">$850.00</span>
+          </div>
+          <span id="winnerAuditCode" class="text-[11px] font-mono text-slate-400">Ledger Hash: #LOT-101-WIN-CONFIRMED</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- UNSOLD / NO BIDS BANNER (Shown if auction ended with 0 bids) -->
+    <div id="unsoldBanner" class="hidden mb-6 p-6 rounded-2xl bg-slate-900/90 border border-slate-700 text-center">
+      <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
+        <i data-lucide="archive" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-lg font-bold text-white">Auction Ended — Lot Unsold</h3>
+      <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">No bids reached the opening price before time expired. The item remains with the event organizers.</p>
+    </div>
+
+    <!-- TWO-COLUMN WORKSPACE -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: ITEM SHOWCASE & TIMER (5 cols) -->
+      <section class="lg:col-span-5 space-y-6">
+
+        <!-- ITEM SHOWCASE CARD -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-xl relative overflow-hidden">
+          
+          <!-- Image Container with Badges -->
+          <div class="relative w-full h-64 sm:h-72 rounded-2xl overflow-hidden bg-slate-950 group">
+            <img id="itemImage" src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=80" alt="Auction Item" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+            
+            <!-- Badges -->
+            <div class="absolute top-3 left-3 flex flex-wrap gap-2">
+              <span id="itemLotBadge" class="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 text-xs font-mono text-amber-400 font-bold">
+                LOT #101
+              </span>
+              <span id="itemCategoryBadge" class="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 text-xs text-slate-300">
+                Horology & Rare
+              </span>
+            </div>
+
+            <!-- Starting Price Overlay Tag -->
+            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl px-4 py-2.5">
+              <div>
+                <span class="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">Starting Price</span>
+                <span id="itemStartingPrice" class="text-lg font-bold text-emerald-400">$500.00</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">Estimate</span>
+                <span id="itemEstimate" class="text-xs font-semibold text-slate-300">$1,200 - $1,800</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item Details -->
+          <div class="mt-5 space-y-3">
+            <h1 id="itemTitle" class="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
+              Vintage 1968 Rolex Submariner Ref. 5513
+            </h1>
+            <p id="itemDescription" class="text-sm text-slate-400 leading-relaxed">
+              Original matte meters-first dial, stainless steel Oyster bracelet, verified museum-grade provenance with complete box and papers.
+            </p>
+
+            <div class="pt-3 border-t border-slate-800/80 grid grid-cols-2 gap-3 text-xs text-slate-400">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+                <span>Authenticated Provenance</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+                <span>Inspected by Expert</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COUNTDOWN TIMER CARD -->
+        <div id="timerCard" class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden transition-all duration-300">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="clock" class="w-5 h-5 text-emerald-400"></i>
+              <span class="font-bold text-sm tracking-wide text-white uppercase">Auction Clock</span>
+            </div>
+            <span id="timerSubtitle" class="text-xs text-slate-400 font-medium">Bidding Active</span>
+          </div>
+
+          <!-- Digital Countdown Display -->
+          <div class="flex flex-col items-center justify-center py-3">
+            <div id="timerDisplay" class="font-mono text-5xl sm:text-6xl font-black tracking-tight text-emerald-400 transition-colors duration-300">
+              01:00
+            </div>
+            <div class="flex items-center space-x-8 text-[11px] uppercase tracking-widest text-slate-400 mt-1">
+              <span>Minutes</span>
+              <span>Seconds</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-800 rounded-full h-2.5 mt-5 overflow-hidden">
+            <div id="timerProgressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: 100%"></div>
+          </div>
+
+          <!-- Helper Status Note -->
+          <div id="timerNotice" class="text-center mt-3 text-xs text-slate-400 flex items-center justify-center space-x-1.5">
+            <i data-lucide="info" class="w-3.5 h-3.5"></i>
+            <span>Bids strictly locked upon timer expiry.</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: BIDDING STATION & HISTORY (7 cols) -->
+      <section class="lg:col-span-7 space-y-6">
+
+        <!-- CURRENT HIGHEST BID SPOTLIGHT -->
+        <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-850 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-8 -bottom-8 w-36 h-36 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="text-xs uppercase font-bold tracking-widest text-slate-400">Current Highest Bid</span>
+                <span id="leadingBadge" class="hidden px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                  ACTIVE LEADER
+                </span>
+              </div>
+              <div class="flex items-baseline space-x-2 mt-1">
+                <span id="highestBidValue" class="text-4xl sm:text-5xl font-black text-white tracking-tight">
+                  $500.00
+                </span>
+                <span id="highestBidIncrease" class="text-xs text-slate-400 font-medium">
+                  (Starting Price)
+                </span>
+              </div>
+            </div>
+
+            <!-- Leader Identity Badge -->
+            <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 sm:min-w-[180px]">
+              <span class="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">Leading Bidder</span>
+              <div class="flex items-center space-x-2.5 mt-1">
+                <div id="leaderAvatar" class="w-7 h-7 rounded-full bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-xs border border-slate-700">
+                  --
+                </div>
+                <div>
+                  <span id="leaderName" class="text-sm font-bold text-white block truncate max-w-[120px]">No Bids Yet</span>
+                  <span id="leaderTimestamp" class="text-[10px] text-slate-400 block">Waiting for opening bid</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PARTICIPANT BIDDING STATION CARD -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-white">Place Your Offer</h3>
+            </div>
+            <div class="text-xs text-slate-400">
+              Min. Required: <span id="minNextBidText" class="font-bold text-emerald-400">$500.00</span>
+            </div>
+          </div>
+
+          <!-- Quick Increment Buttons -->
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-2">Quick Bid Increments</label>
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="10">
+                +$10
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="25">
+                +$25
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="50">
+                +$50
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="100">
+                +$100
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="250">
+                +$250
+              </button>
+              <button type="button" id="matchMinBtn" class="py-2 px-1 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-xs font-semibold text-emerald-400 transition active:scale-95 disabled:opacity-40">
+                Next Min
+              </button>
+            </div>
+          </div>
+
+          <!-- Bid Form -->
+          <form id="bidForm" class="space-y-4">
+            <div>
+              <label for="bidAmountInput" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1.5">
+                Custom Bid Amount (USD)
+              </label>
+              <div class="relative rounded-2xl shadow-sm">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                  <span class="text-slate-400 sm:text-lg font-bold">$</span>
+                </div>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  id="bidAmountInput"
+                  name="amount"
+                  placeholder="0.00"
+                  class="block w-full rounded-2xl border border-slate-700 bg-slate-950 pl-9 pr-24 py-3.5 text-white font-mono text-xl sm:text-2xl font-bold placeholder-slate-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  required
+                >
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <button
+                    type="submit"
+                    id="submitBidBtn"
+                    class="h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    <span>Place Bid</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Feedback Alert Message Container -->
+            <div id="bidFeedbackMessage" class="hidden p-3.5 rounded-xl text-xs font-medium border transition-all"></div>
+          </form>
+        </div>
+
+        <!-- BID HISTORY & EVENT AUDIT LOG -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-white">Live Bid History</h3>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span id="totalBidsCount" class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">
+                0 Bids
+              </span>
+            </div>
+          </div>
+
+          <!-- History Feed -->
+          <div id="bidHistoryContainer" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+            <!-- Empty State -->
+            <div id="emptyHistoryNotice" class="text-center py-10 px-4 text-slate-500">
+              <i data-lucide="tag" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+              <p class="text-xs font-medium">No bids have been placed yet.</p>
+              <p class="text-[11px] text-slate-600 mt-0.5">Opening offer will initiate the competition.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- EDIT ITEM MODAL (Organizer Only) -->
+  <div id="editItemModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+          <span>Edit Auction Item Details</span>
+        </h3>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="editItemForm" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Item Title</label>
+          <input type="text" id="modalItemTitle" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400" required>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Starting Price ($)</label>
+          <input type="number" min="1" id="modalStartingPrice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400" required>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Category / Tag</label>
+          <input type="text" id="modalCategory" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Image URL</label>
+          <input type="url" id="modalImageUrl" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Description</label>
+          <textarea id="modalDescription" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" id="cancelEditModalBtn" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-5 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+        <span>Event Auction System — Authoritative server-validated transparent bidding</span>
+      </div>
+      <div>
+        <span>Multi-Tab Real-time Synchronized with Socket.IO</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Socket.IO Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Application Script -->
+  <script src="/app.js"></script>
+</body>
+</html>
