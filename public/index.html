@@ -248,11 +248,11 @@
             <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl px-4 py-2.5">
               <div>
                 <span class="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">Starting Price</span>
-                <span id="itemStartingPrice" class="text-lg font-bold text-emerald-400">$500.00</span>
+                <span id="itemStartingPrice" class="text-lg font-bold text-emerald-400">₹500.00</span>
               </div>
               <div class="text-right">
                 <span class="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">Estimate</span>
-                <span id="itemEstimate" class="text-xs font-semibold text-slate-300">$1,200 - $1,800</span>
+                <span id="itemEstimate" class="text-xs font-semibold text-slate-300">₹1,20,000 - ₹1,80,000</span>
               </div>
             </div>
           </div>
@@ -331,7 +331,7 @@
               </div>
               <div class="flex items-baseline space-x-2 mt-1">
                 <span id="highestBidValue" class="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                  $500.00
+                  ₹500.00
                 </span>
                 <span id="highestBidIncrease" class="text-xs text-slate-400 font-medium">
                   (Starting Price)
@@ -363,28 +363,32 @@
               <h3 class="text-sm font-bold uppercase tracking-wider text-white">Place Your Offer</h3>
             </div>
             <div class="text-xs text-slate-400">
-              Min. Required: <span id="minNextBidText" class="font-bold text-emerald-400">$500.00</span>
+              Min. Required: <span id="minNextBidText" class="font-bold text-emerald-400">₹500.00</span>
+              <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold">(Min +₹100 step)</span>
             </div>
           </div>
 
           <!-- Quick Increment Buttons -->
           <div>
-            <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-2">Quick Bid Increments</label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Quick Bid Increments</label>
+              <span class="text-[10px] text-amber-400/90 font-medium">⚡ Rule: Every new bid must be ≥ ₹100 higher</span>
+            </div>
             <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="10">
-                +$10
-              </button>
-              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="25">
-                +$25
-              </button>
-              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="50">
-                +$50
-              </button>
               <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="100">
-                +$100
+                +₹100
               </button>
-              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="250">
-                +$250
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="200">
+                +₹200
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="500">
+                +₹500
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="1000">
+                +₹1,000
+              </button>
+              <button type="button" class="quick-bid-btn py-2 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition active:scale-95 disabled:opacity-40" data-add="2500">
+                +₹2,500
               </button>
               <button type="button" id="matchMinBtn" class="py-2 px-1 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-xs font-semibold text-emerald-400 transition active:scale-95 disabled:opacity-40">
                 Next Min
@@ -396,11 +400,11 @@
           <form id="bidForm" class="space-y-4">
             <div>
               <label for="bidAmountInput" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1.5">
-                Custom Bid Amount (USD)
+                Custom Bid Amount (INR ₹)
               </label>
               <div class="relative rounded-2xl shadow-sm">
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <span class="text-slate-400 sm:text-lg font-bold">$</span>
+                  <span class="text-slate-400 sm:text-lg font-bold">₹</span>
                 </div>
                 <input
                   type="number"
@@ -408,7 +412,7 @@
                   min="1"
                   id="bidAmountInput"
                   name="amount"
-                  placeholder="0.00"
+                  placeholder="0"
                   class="block w-full rounded-2xl border border-slate-700 bg-slate-950 pl-9 pr-24 py-3.5 text-white font-mono text-xl sm:text-2xl font-bold placeholder-slate-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                 >
@@ -480,7 +484,7 @@
         </div>
 
         <div>
-          <label class="block text-slate-400 font-semibold mb-1">Starting Price ($)</label>
+          <label class="block text-slate-400 font-semibold mb-1">Starting Price (₹)</label>
           <input type="number" min="1" id="modalStartingPrice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400" required>
         </div>
 

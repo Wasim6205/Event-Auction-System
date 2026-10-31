@@ -8,9 +8,9 @@ A transparent, real-time, timed auction platform built for event organizers and 
 
 | # | Required Feature | Implementation Details |
 |---|---|---|
-| **1** | **Display Item & Starting Price** | Showcases high-resolution item imagery, title, provenance certification, lot number, category, and prominent starting price banner. |
-| **2** | **Allow Participants to Place Bids** | Participants can enter their name, choose demo personas (Alice, Bob, Charlie, Diana), use quick increment buttons (`+$10`, `+$25`, `+$50`, `+$100`, `+$250`, `Next Min`), or enter custom bids. |
-| **3** | **Reject Invalid / Lower Bids** | Validates bids both client-side and server-side. Strictly rejects bids lower than the starting price or less than/equal to the current highest bid (`BID_TOO_LOW`, `BELOW_STARTING_PRICE`) with clear visual and audio alerts. |
+| **1** | **Display Item & Starting Price** | Showcases high-resolution item imagery, title, provenance certification, lot number, category, and prominent starting price banner (e.g. ₹500.00). |
+| **2** | **Allow Participants to Place Bids** | Participants can enter their name, choose demo personas (Alice, Bob, Charlie, Diana), use quick increment buttons (`+₹100`, `+₹200`, `+₹500`, `+₹1,000`, `+₹2,500`, `Next Min`), or enter custom bids. |
+| **3** | **Reject Invalid / Lower Bids (≥ ₹100 Step Rule)** | Validates bids both client-side and server-side. Strictly enforces that **every new bid must be at least ₹100 higher than the current highest bid** (or $\ge$ starting price for the opening bid). Automatically rejects sub-₹100 increments, equal bids, and lower bids (`BID_TOO_LOW`, `BELOW_STARTING_PRICE`) with clear visual and audio alerts. |
 | **4** | **Display Highest Bid & Bid History** | Live spotlight showing current highest bid amount, leader name, and relative timestamp. Full chronological bid history feed with rank, leader status badges, bid delta, and exact timestamps. |
 | **5** | **Stop Accepting Bids at Auction End** | Synchronized countdown clock with visual urgency (green $\to$ amber $\to$ pulsing red in final 10s). Server-enforced expiration rejects late bids (`AUCTION_ENDED`) and immediately locks bidding inputs. |
 | **6** | **Display the Winner** | Celebratory winner showcase banner with winner's name, final hammer price, receipt audit ID, dynamic confetti celebration, and sound fanfare. |

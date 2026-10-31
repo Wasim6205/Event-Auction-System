@@ -1,12 +1,13 @@
 /**
  * Auction Engine
  * Core domain logic for single-item timed auctions.
- * Enforces strict bid validation, timer boundaries, and winner determination.
+ * Enforces strict bid validation, timer boundaries, minimum increments (₹100), and winner determination.
  */
 
 class AuctionEngine {
   constructor(initialItem = null, options = {}) {
     this.defaultDuration = options.defaultDuration || 90; // 90 seconds default
+    this.minIncrement = options.minIncrement !== undefined ? Number(options.minIncrement) : 100; // Minimum ₹100 increment
     this.reset(initialItem);
   }
 
@@ -19,7 +20,7 @@ class AuctionEngine {
       title: 'Vintage 1968 Rolex Submariner Ref. 5513',
       description: 'Original matte meters-first dial, stainless steel Oyster bracelet, verified museum-grade provenance with complete box and papers.',
       startingPrice: 500,
-      estimatedValue: '$1,200 - $1,800',
+      estimatedValue: '₹1,20,000 - ₹1,80,000',
       category: 'Horology / Rare Collectibles',
       lotNumber: 'LOT #101',
       imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=80'
@@ -63,6 +64,12 @@ class AuctionEngine {
         return { success: false, reason: 'Starting price must be a positive number.' };
       }
       this.item.startingPrice = price;
+    }
+    if (updates.minIncrement !== undefined) {
+      const inc = Number(updates.minIncrement);
+      if (!isNaN(inc) && inc > 0) {
+        this.minIncrement = inc;
+      }
     }
 
     return { success: true, item: this.item };
@@ -144,6 +151,7 @@ class AuctionEngine {
 
   /**
    * Place a bid on the item
+   * Requirement: Every new bid must be at least ₹100 higher than the current highest bid.
    * @param {Object} bidParams - { bidderName, amount }
    */
   placeBid({ bidderName, amount }) {
@@ -195,17 +203,21 @@ class AuctionEngine {
       return {
         success: false,
         code: 'BELOW_STARTING_PRICE',
-        reason: `Bid of $${cleanAmount.toLocaleString()} is below the starting price of $${this.item.startingPrice.toLocaleString()}.`
+        reason: `Bid of ₹${cleanAmount.toLocaleString('en-IN')} is below the starting price of ₹${this.item.startingPrice.toLocaleString('en-IN')}.`
       };
     }
 
-    // 6. Validate against current highest bid
+    // 6. Validate against current highest bid:
+    // MUST BE AT LEAST ₹100 HIGHER than current highest bid
     if (this.currentHighestBid) {
-      if (cleanAmount <= this.currentHighestBid.amount) {
+      const minRequired = Math.round((this.currentHighestBid.amount + this.minIncrement) * 100) / 100;
+      if (cleanAmount < minRequired) {
         return {
           success: false,
           code: 'BID_TOO_LOW',
-          reason: `Bid of $${cleanAmount.toLocaleString()} rejected: Must exceed the current highest bid of $${this.currentHighestBid.amount.toLocaleString()}.`,
+          minRequired,
+          minIncrement: this.minIncrement,
+          reason: `Bid of ₹${cleanAmount.toLocaleString('en-IN')} rejected: Every new bid must be at least ₹${this.minIncrement} higher than the current highest bid of ₹${this.currentHighestBid.amount.toLocaleString('en-IN')} (minimum required bid is ₹${minRequired.toLocaleString('en-IN')}).`,
           currentHighestBid: this.currentHighestBid.amount
         };
       }
@@ -265,6 +277,7 @@ class AuctionEngine {
       item: { ...this.item },
       currentHighestBid: this.currentHighestBid ? { ...this.currentHighestBid } : null,
       startingPrice: this.item.startingPrice,
+      minIncrement: this.minIncrement,
       totalBids: this.bids.length,
       bids: this.bids.map(b => ({ ...b })),
       duration: this.duration,
@@ -274,11 +287,10 @@ class AuctionEngine {
       endedAt: this.endedAt,
       winner: this.winner ? { ...this.winner } : null,
       minNextBid: this.currentHighestBid
-        ? this.currentHighestBid.amount + 1
+        ? Math.round((this.currentHighestBid.amount + this.minIncrement) * 100) / 100
         : this.item.startingPrice
     };
   }
 }
 
 module.exports = AuctionEngine;
-

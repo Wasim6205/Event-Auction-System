@@ -131,7 +131,7 @@ app.get('/api/auction/export', (req, res) => {
   const state = auction.getState();
 
   if (format === 'csv') {
-    let csv = 'Bid ID,Bidder Name,Amount ($),Timestamp,Formatted Time,Leading,Increment ($)\n';
+    let csv = 'Bid ID,Bidder Name,Amount (INR),Timestamp,Formatted Time,Leading,Increment (INR)\n';
     state.bids.forEach(b => {
       csv += `"${b.id}","${b.bidderName}",${b.amount},${b.timestamp},"${b.formattedTime}",${b.isLeading},${b.increment}\n`;
     });

@@ -224,10 +224,10 @@
   // --- FORMATTING HELPERS ---
   function formatCurrency(val) {
     const num = Number(val) || 0;
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
+      currency: 'INR',
+      minimumFractionDigits: 0,
       maximumFractionDigits: 2
     }).format(num);
   }
@@ -539,7 +539,7 @@
   el.quickBidBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       if (!currentState) return;
-      const add = Number(btn.getAttribute('data-add')) || 10;
+      const add = Number(btn.getAttribute('data-add')) || 100;
       const base = currentState.currentHighestBid
         ? currentState.currentHighestBid.amount
         : currentState.startingPrice;
@@ -582,10 +582,14 @@
         return;
       }
 
-      if (currentState.currentHighestBid && amount <= currentState.currentHighestBid.amount) {
-        setBidFeedback(`Bid of ${formatCurrency(amount)} rejected: Must exceed current highest bid of ${formatCurrency(currentState.currentHighestBid.amount)}.`, true);
-        soundBidRejected();
-        return;
+      if (currentState.currentHighestBid) {
+        const minIncrement = currentState.minIncrement || 100;
+        const minRequired = Math.round((currentState.currentHighestBid.amount + minIncrement) * 100) / 100;
+        if (amount < minRequired) {
+          setBidFeedback(`Bid of ${formatCurrency(amount)} rejected: Every new bid must be at least ₹${minIncrement} higher than current highest bid of ${formatCurrency(currentState.currentHighestBid.amount)} (minimum required: ${formatCurrency(minRequired)}).`, true);
+          soundBidRejected();
+          return;
+        }
       }
 
       if (amount < currentState.startingPrice) {

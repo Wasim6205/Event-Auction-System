@@ -100,6 +100,16 @@ test('API: Place valid bid and reject bids that do not exceed highest bid', asyn
   assert.equal(bidRejectEqual.status, 400);
   assert.equal(bidRejectEqual.data.code, 'BID_TOO_LOW');
 
+  // Reject bid with increment < ₹100 (550 is only +50)
+  const bidRejectSmallIncrement = await request('/api/auction/bid', {
+    method: 'POST',
+    body: { bidderName: 'Bob', amount: 550 }
+  });
+  assert.equal(bidRejectSmallIncrement.status, 400);
+  assert.equal(bidRejectSmallIncrement.data.code, 'BID_TOO_LOW');
+  assert.equal(bidRejectSmallIncrement.data.minRequired, 600);
+  assert.match(bidRejectSmallIncrement.data.reason, /at least ₹100 higher/i);
+
   // Reject bid below starting price
   const bidRejectBelow = await request('/api/auction/bid', {
     method: 'POST',
@@ -108,7 +118,7 @@ test('API: Place valid bid and reject bids that do not exceed highest bid', asyn
   assert.equal(bidRejectBelow.status, 400);
   assert.equal(bidRejectBelow.data.code, 'BELOW_STARTING_PRICE');
 
-  // Higher bid accepted (David bids 650)
+  // Higher bid accepted with >= ₹100 increment (David bids 650, which is >= 600)
   const bid2 = await request('/api/auction/bid', {
     method: 'POST',
     body: { bidderName: 'David', amount: 650 }
